@@ -18,19 +18,96 @@
 
 package org.junkfactory.jdbi3.plugin.mt;
 
+import org.jdbi.v3.core.Jdbi;
+import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
+import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfigurationException;
+import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
+
 import javax.sql.DataSource;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static org.jdbi.v3.core.generic.internal.Preconditions.checkNotNull;
 
 public class JdbiFactory {
 
-    private final ConcurrentMap<String, DataSource> dataSourceMap;
-    private Supplier<DataSource> dataSourceSupplier;
+    private static JdbiFactory INSTANCE;
 
-    private JdbiFactory() {
-        this.dataSourceMap = new ConcurrentHashMap<>();
+    public static JdbiFactory getInstance() {
+        return INSTANCE;
     }
 
+    public static Initializer newInitializer() {
+        return new Initializer();
+    }
 
+    private final Supplier<String> currentTenantResolver;
+    private final Function<DatabaseConfiguration, DataSource> dataSourceProvider;
+    private final DatabaseConfigurationProvider databaseConfigurationProvider;
+
+    private final ConcurrentMap<String, Jdbi> jdbiTenantMap;
+
+    private JdbiFactory(Initializer initializer) {
+        currentTenantResolver = initializer.currentTenantResolver;
+        dataSourceProvider = initializer.dataSourceProvider;
+        databaseConfigurationProvider = initializer.databaseConfigurationProvider;
+        jdbiTenantMap = new ConcurrentHashMap<>();
+    }
+
+    private DatabaseConfiguration getDatabaseConfigurationForTenant(String tenantId) {
+        return databaseConfigurationProvider.get(tenantId).orElseThrow(() ->
+                new DatabaseConfigurationException("Cannot find database configuration for tenant " + tenantId));
+    }
+
+    public Function<DatabaseConfiguration, DataSource> getDataSourceProvider() {
+        return dataSourceProvider;
+    }
+
+    public DatabaseConfigurationProvider getDatabaseConfigurationProvider() {
+        return databaseConfigurationProvider;
+    }
+
+    public Jdbi getJdbi() {
+        return jdbiTenantMap.computeIfAbsent(currentTenantResolver.get(),
+                tenantId -> Jdbi.create(dataSourceProvider.apply(getDatabaseConfigurationForTenant(tenantId)))
+                        .installPlugin(new MultiTenantJdbiPlugin(currentTenantResolver,
+                                databaseConfigurationProvider)));
+    }
+
+    public static final class Initializer {
+
+        private Supplier<String> currentTenantResolver;
+        private Function<DatabaseConfiguration, DataSource> dataSourceProvider;
+        private DatabaseConfigurationProvider databaseConfigurationProvider;
+
+        private Initializer() {
+        }
+
+        public Initializer setCurrentTenantResolver(Supplier<String> currentTenantResolver) {
+            this.currentTenantResolver = currentTenantResolver;
+            return this;
+        }
+
+        public Initializer setDataSourceProvider(Function<DatabaseConfiguration, DataSource> dataSourceProvider) {
+            this.dataSourceProvider = dataSourceProvider;
+            return this;
+        }
+
+        public Initializer setDatabaseConfigurationProvider(DatabaseConfigurationProvider databaseConfigurationProvider) {
+            this.databaseConfigurationProvider = databaseConfigurationProvider;
+            return this;
+        }
+
+        public JdbiFactory init() {
+            if (INSTANCE == null) {
+                checkNotNull(currentTenantResolver, "Current tenant resolver is required.");
+                checkNotNull(dataSourceProvider, "Datasource provider is required.");
+                checkNotNull(databaseConfigurationProvider, "Database configuration provider is required.");
+                INSTANCE = new JdbiFactory(this);
+            }
+            return INSTANCE;
+        }
+    }
 }

@@ -18,37 +18,104 @@
 
 package org.junkfactory.jdbi3.plugin.mt;
 
-import org.jdbi.v3.core.Jdbi;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
+import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
+import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadContextTenantResolver;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import javax.sql.DataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Optional;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.doReturn;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MultiTenantJdbiPluginTest {
 
     @Mock
-    DataSource mockDataSource;
-    @Mock
     Connection mockConnection;
+    @Mock
+    DatabaseConfigurationProvider mockDatabaseConfigurationProvider;
+    @Mock
+    DatabaseConfiguration mockDatabaseConfiguration;
+    @Captor
+    ArgumentCaptor<String> sqlQueryCaptor;
 
     @Test
-    public void testJdbiFactory() throws SQLException {
+    public void testThatPluginDoesNotExecuteSwitchDatabaseStatementOneSingleTenant() throws SQLException {
 
-        doReturn(mockConnection).when(mockDataSource).getConnection();
+        final String tenant1 = "tenant1";
 
-        Jdbi jdbi = Jdbi.create(mockDataSource);
-        jdbi.installPlugin(new MultiTenantJdbiPlugin());
-        jdbi.useHandle(h -> h.select("select 1"));
+        doReturn(1).when(mockDatabaseConfigurationProvider).getNumTenants();
+        doReturn(Optional.of(mockDatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(tenant1));
+
+        MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(() -> tenant1, mockDatabaseConfigurationProvider);
+        multiTenantJdbiPlugin.customizeConnection(mockConnection);
+
+        //get number of tenants is called once
+        verify(mockDatabaseConfigurationProvider, times(1)).getNumTenants();
+        //only 1 tenant, verify connection.createStatement() was not called
+        verify(mockConnection, times(0)).createStatement();
+
+    }
+
+    @Test
+    public void testThatPluginExecutesSwitchStatement() throws SQLException {
+
+        final String defaultTenant = "default_tenant";
+        final String defaultTenantDatabaseName = defaultTenant + "_prod";
+        final String tenant1 = "tenant1";
+        final String tenant1DatabaseName = tenant1 + "_prod";
+
+        Statement mockStatement = mock(Statement.class);
+        DatabaseConfiguration tenant1DatabaseConfiguration = mock(DatabaseConfiguration.class);
+        DatabaseConfiguration defaultTenantDatabaseConfiguration = mock(DatabaseConfiguration.class);
+
+        doReturn(defaultTenantDatabaseName).when(defaultTenantDatabaseConfiguration).getDatabaseName();
+        doReturn(tenant1DatabaseName).when(tenant1DatabaseConfiguration).getDatabaseName();
+        doReturn(mockStatement).when(mockConnection).createStatement();
+        doReturn(2).when(mockDatabaseConfigurationProvider).getNumTenants();
+        doReturn(Optional.of(tenant1DatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(tenant1));
+        doReturn(Optional.of(defaultTenantDatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(defaultTenant));
+
+        ThreadContextTenantResolver tenantResolver = ThreadContextTenantResolver.newInitializer()
+                .setDefaultTenant(defaultTenant)
+                .init();
+
+        MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(tenantResolver, mockDatabaseConfigurationProvider);
+
+        //test tenant1
+        tenantResolver.set(tenant1);
+        multiTenantJdbiPlugin.customizeConnection(mockConnection);
+
+        //get number of tenants is called once
+        verify(mockDatabaseConfigurationProvider, times(1)).getNumTenants();
+        //only 1 tenant, verify connection.createStatement() was not called
+        verify(mockConnection, times(1)).createStatement();
+        //verify use query
+        verify(mockStatement, times(1)).execute(sqlQueryCaptor.capture());
+        assertEquals("SQL Query must match", "USE " + tenant1DatabaseName, sqlQueryCaptor.getValue());
+
+
+        tenantResolver.reset();
+        multiTenantJdbiPlugin.customizeConnection(mockConnection);
+
+        //get number of tenants is called once
+        verify(mockDatabaseConfigurationProvider, times(2)).getNumTenants();
+        //only 1 tenant, verify connection.createStatement() was not called
+        verify(mockConnection, times(2)).createStatement();
+        //verify use query
+        verify(mockStatement, times(2)).execute(sqlQueryCaptor.capture());
+        assertEquals("SQL Query must match", "USE " + defaultTenantDatabaseName, sqlQueryCaptor.getValue());
 
     }
 

@@ -18,32 +18,54 @@
 
 package org.junkfactory.jdbi3.plugin.mt;
 
-import org.jdbi.v3.core.Handle;
-import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.spi.JdbiPlugin;
+import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
+import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfigurationException;
+import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.function.Supplier;
 
-public class MultiTenantJdbiPlugin implements JdbiPlugin {
+class MultiTenantJdbiPlugin implements JdbiPlugin {
 
     private static final Logger logger = LoggerFactory.getLogger(MultiTenantJdbiPlugin.class);
 
-    @Override
-    public void customizeJdbi(Jdbi jdbi) {
-        logger.debug("Customize jdbi");
-    }
+    private final Supplier<String> currentTenantResolver;
+    private final DatabaseConfigurationProvider databaseConfigurationProvider;
 
-    @Override
-    public Handle customizeHandle(Handle handle) {
-        logger.debug("Customize handle");
-        return handle;
+    public MultiTenantJdbiPlugin(Supplier<String> currentTenantResolver, DatabaseConfigurationProvider databaseConfigurationProvider) {
+        this.currentTenantResolver = currentTenantResolver;
+        this.databaseConfigurationProvider = databaseConfigurationProvider;
     }
 
     @Override
     public Connection customizeConnection(Connection conn) {
-        logger.debug("Customize connection");
+        switchTenantDatabaseIfNecessary(conn);
         return conn;
+    }
+
+    /**
+     * Switch the tenant database. Only switches the database if there is more than 1 tenant
+     * @param conn The JDBC {@link Connection}
+     */
+    protected void switchTenantDatabaseIfNecessary(Connection conn) {
+        final String currentTenant = currentTenantResolver.get();
+        final DatabaseConfiguration databaseConfiguration = databaseConfigurationProvider.get(currentTenant)
+                .orElseThrow(() -> new DatabaseConfigurationException("Cannot find database configuration for tenant " + currentTenant));
+        final int numTenants = databaseConfigurationProvider.getNumTenants();
+        logger.debug("Customize connection, tenant={}, database={}, numTenants={}", currentTenant, databaseConfiguration, numTenants);
+        //only customize connection only if number of tenants
+        if (numTenants > 1) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute("USE " + databaseConfiguration.getDatabaseName());
+            } catch (SQLException e) {
+                logger.error("Failed to switch db for tenant={}, database={}", currentTenant, databaseConfiguration);
+                throw new IllegalStateException("Failed to switch db for tenant " + currentTenant, e);
+            }
+        }
     }
 }
