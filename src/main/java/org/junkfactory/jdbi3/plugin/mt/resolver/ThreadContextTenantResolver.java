@@ -74,6 +74,8 @@ public class ThreadContextTenantResolver implements TenantResolver {
                 checkArgument(defaultTenant != null && defaultTenant.trim().length() > 0,
                         "Default tenant is required");
                 instance = new ThreadContextTenantResolver(this);
+            } else {
+                throw new IllegalStateException("ThreadContextTenantResolver already initialized");
             }
             return instance;
         }

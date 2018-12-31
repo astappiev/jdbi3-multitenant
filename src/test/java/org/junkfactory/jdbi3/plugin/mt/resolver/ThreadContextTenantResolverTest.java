@@ -36,19 +36,14 @@ public class ThreadContextTenantResolverTest {
     private static final String TEST_DEFAULT_TENANT = "TEST_DEFAULT_TENANT";
 
     @Test
-    public void testValidationOfDefaultTenant() {
+    public void testResolverIsPerThread() throws InterruptedException {
 
         try {
-            ThreadContextTenantResolver resolver = ThreadContextTenantResolver.newInitializer().init();
+            ThreadContextTenantResolver.newInitializer().init();
             fail("Must throw IllegalArgumentException cause of not setting default tenant");
         } catch (IllegalArgumentException e) {
             assertEquals("Message must match", "Default tenant is required", e.getMessage());
         }
-
-    }
-
-    @Test
-    public void testResolverIsPerThread() throws InterruptedException {
 
         ThreadContextTenantResolver resolver = ThreadContextTenantResolver.newInitializer()
                 .setDefaultTenant(TEST_DEFAULT_TENANT)

@@ -85,14 +85,13 @@ public class MultiTenantJdbiPluginTest {
         doReturn(Optional.of(tenant1DatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(tenant1));
         doReturn(Optional.of(defaultTenantDatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(defaultTenant));
 
-        ThreadContextTenantResolver tenantResolver = ThreadContextTenantResolver.newInitializer()
-                .setDefaultTenant(defaultTenant)
-                .init();
+        ThreadContextTenantResolver tenantResolver = mock(ThreadContextTenantResolver.class);
+        doReturn(defaultTenant).when(tenantResolver).getDefaultTenant();
 
         MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(tenantResolver, mockDatabaseConfigurationProvider);
 
         //test tenant1
-        tenantResolver.setCurrentTenant(tenant1);
+        doReturn(tenant1).when(tenantResolver).get();
         multiTenantJdbiPlugin.customizeConnection(mockConnection);
 
         //get number of tenants is called once
@@ -104,7 +103,7 @@ public class MultiTenantJdbiPluginTest {
         assertEquals("SQL Query must match", "USE " + tenant1DatabaseName, sqlQueryCaptor.getValue());
 
 
-        tenantResolver.reset();
+        doReturn(defaultTenant).when(tenantResolver).get();
         multiTenantJdbiPlugin.customizeConnection(mockConnection);
 
         //get number of tenants is called once

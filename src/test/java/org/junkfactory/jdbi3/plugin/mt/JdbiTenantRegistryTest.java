@@ -25,13 +25,10 @@ import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
 import org.junkfactory.jdbi3.plugin.mt.provider.CachedPerHostDataSourceProvider;
 import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
 import org.junkfactory.jdbi3.plugin.mt.resolver.TenantResolver;
-import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadContextTenantResolver;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -46,8 +43,6 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JdbiTenantRegistryTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(JdbiTenantRegistryTest.class);
 
     @Mock
     TenantResolver mockTenantResolver;
@@ -83,12 +78,6 @@ public class JdbiTenantRegistryTest {
         } catch (NullPointerException e) {
             assertEquals("Validation message must match", "Data source provider is required.", e.getMessage());
         }
-
-        JdbiTenantRegistry registry = initializer.setDataSourceProvider(mockDataSourceProvider).init();
-        assertEquals("Instance must match singleton instance", registry, JdbiTenantRegistry.getInstance());
-        assertEquals("Tenant resolver must match", mockTenantResolver, registry.getCurrentTenantResolver());
-        assertEquals("Database configuration provider must match", mockDatabaseConfigurationProvider, registry.getDatabaseConfigurationProvider());
-        assertEquals("Datasource provider must match", mockDataSourceProvider, registry.getDataSourceProvider());
 
     }
 
@@ -134,11 +123,20 @@ public class JdbiTenantRegistryTest {
         Statement mockStatement = mock(Statement.class);
         doReturn(mockStatement).when(mockConnection).createStatement();
 
+        doReturn(defaultTenant).when(mockTenantResolver).get();
+        doReturn(defaultTenant).when(mockTenantResolver).getDefaultTenant();
+
+        CachedPerHostDataSourceProvider cachedPerHostDataSourceProvider = new CachedPerHostDataSourceProvider(mockDataSourceProvider);
         JdbiTenantRegistry.newInitializer()
-                .setCurrentTenantResolver(ThreadContextTenantResolver.newInitializer().setDefaultTenant(defaultTenant).init())
+                .setCurrentTenantResolver(mockTenantResolver)
                 .setDatabaseConfigurationProvider(mockDatabaseConfigurationProvider)
-                .setDataSourceProvider(new CachedPerHostDataSourceProvider(mockDataSourceProvider))
+                .setDataSourceProvider(cachedPerHostDataSourceProvider)
                 .init();
+
+        assertEquals("Instance must match singleton instance", JdbiTenantRegistry.getInstance(), JdbiTenantRegistry.getInstance());
+        assertEquals("Tenant resolver must match", mockTenantResolver, JdbiTenantRegistry.getInstance().getCurrentTenantResolver());
+        assertEquals("Database configuration provider must match", mockDatabaseConfigurationProvider, JdbiTenantRegistry.getInstance().getDatabaseConfigurationProvider());
+        assertEquals("Datasource provider must match", cachedPerHostDataSourceProvider, JdbiTenantRegistry.getInstance().getDataSourceProvider());
 
         //test jdbi with default tenant
         Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
@@ -150,7 +148,7 @@ public class JdbiTenantRegistryTest {
         assertEquals("Jdbi num instances must match", 1, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
 
         //test jdbi tenant 1
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant1);
+        doReturn(tenant1).when(mockTenantResolver).get();
         jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
         //same host as default so num invocation still the same
@@ -161,7 +159,7 @@ public class JdbiTenantRegistryTest {
         assertEquals("Host must match", tenant1Host, databaseConfigurationArgumentCaptor.getValue().getHost());
         assertEquals("Jdbi num instances must match", 2, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
 
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant2);
+        doReturn(tenant2).when(mockTenantResolver).get();
         jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
         //diff host new invocation
@@ -173,7 +171,7 @@ public class JdbiTenantRegistryTest {
         assertEquals("Jdbi num instances must match", 3, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
 
         //tenant 1 again
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant1);
+        doReturn(tenant1).when(mockTenantResolver).get();
         jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
         //num invocations remain the same
@@ -186,13 +184,13 @@ public class JdbiTenantRegistryTest {
 
 
         //number of jdbi instances remain the same as long as tenants are existing
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant1);
+        doReturn(tenant1).when(mockTenantResolver).get();
         JdbiTenantRegistry.getInstance().getJdbi();
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant2);
+        doReturn(tenant2).when(mockTenantResolver).get();
         JdbiTenantRegistry.getInstance().getJdbi();
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenant1);
+        doReturn(tenant1).when(mockTenantResolver).get();
         JdbiTenantRegistry.getInstance().getJdbi();
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(defaultTenant);
+        doReturn(defaultTenant).when(mockTenantResolver).get();
         JdbiTenantRegistry.getInstance().getJdbi();
         assertEquals("Jdbi num instances must match", 3, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
     }

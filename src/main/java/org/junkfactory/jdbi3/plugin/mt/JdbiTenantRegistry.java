@@ -120,6 +120,8 @@ public class JdbiTenantRegistry {
                 checkNotNull(databaseConfigurationProvider, "Database configuration provider is required.");
                 checkNotNull(dataSourceProvider, "Data source provider is required.");
                 instance = new JdbiTenantRegistry(this);
+            } else {
+                throw new IllegalStateException("JdbiTenantRegistry already initialized");
             }
             return instance;
         }
