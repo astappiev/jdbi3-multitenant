@@ -21,9 +21,11 @@ package org.junkfactory.jdbi3.plugin.mt.configuration;
 import java.io.Serializable;
 import java.util.Objects;
 
+import static org.jdbi.v3.core.generic.internal.Preconditions.checkArgument;
+
 public class DatabaseConfiguration implements Serializable {
 
-    private static final long serialVersionUID = 2594727374644897025L;
+    private static final long serialVersionUID = -8293126037354414243L;
 
     private final String databaseName;
     private final String host;
@@ -32,11 +34,11 @@ public class DatabaseConfiguration implements Serializable {
     private final String password;
 
     private DatabaseConfiguration(Builder builder) {
-        databaseName = builder.databaseName;
-        host = builder.host;
+        databaseName = builder.databaseName.trim();
+        host = builder.host.trim();
         port = builder.port;
-        username = builder.username;
-        password = builder.password;
+        username = builder.username.trim();
+        password = builder.password.trim();
     }
 
     public static Builder newBuilder() {
@@ -127,6 +129,11 @@ public class DatabaseConfiguration implements Serializable {
         }
 
         public DatabaseConfiguration build() {
+            checkArgument(databaseName != null && databaseName.trim().length() > 0, "Database name is required");
+            checkArgument(host != null && host.trim().length() > 0, "Host is required");
+            checkArgument(port > 0, "Port is invalid");
+            checkArgument(username != null && username.trim().length() > 0, "Username is required");
+            checkArgument(password != null && password.trim().length() > 0, "Password is required");
             return new DatabaseConfiguration(this);
         }
     }

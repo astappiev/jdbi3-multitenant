@@ -18,11 +18,9 @@
 
 package org.junkfactory.jdbi3.plugin.mt.resolver;
 
-import java.util.function.Supplier;
-
 import static org.jdbi.v3.core.generic.internal.Preconditions.checkArgument;
 
-public class ThreadContextTenantResolver implements Supplier<String> {
+public class ThreadContextTenantResolver implements TenantResolver {
 
     private static ThreadContextTenantResolver instance;
 
@@ -47,14 +45,17 @@ public class ThreadContextTenantResolver implements Supplier<String> {
         return currentTenantHolder.get();
     }
 
-    public ThreadContextTenantResolver set(String currentTenant) {
-        currentTenantHolder.set(currentTenant);
-        return this;
+    @Override
+    public String getDefaultTenant() {
+        return defaultTenant;
     }
 
-    public ThreadContextTenantResolver reset() {
+    public void setCurrentTenant(String currentTenant) {
+        currentTenantHolder.set(currentTenant);
+    }
+
+    public void reset() {
         currentTenantHolder.set(defaultTenant);
-        return this;
     }
 
     public static final class Initializer {

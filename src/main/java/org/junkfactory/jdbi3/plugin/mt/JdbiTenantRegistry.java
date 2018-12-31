@@ -22,43 +22,52 @@ import org.jdbi.v3.core.Jdbi;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfigurationException;
 import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
+import org.junkfactory.jdbi3.plugin.mt.resolver.TenantResolver;
 
 import javax.sql.DataSource;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static org.jdbi.v3.core.generic.internal.Preconditions.checkNotNull;
 
-public class JdbiFactory {
+public class JdbiTenantRegistry {
 
-    private static JdbiFactory INSTANCE;
+    private static JdbiTenantRegistry instance;
 
-    public static JdbiFactory getInstance() {
-        return INSTANCE;
+    public static JdbiTenantRegistry getInstance() {
+        return instance;
     }
 
     public static Initializer newInitializer() {
         return new Initializer();
     }
 
-    private final Supplier<String> currentTenantResolver;
+    private final TenantResolver currentTenantResolver;
     private final Function<DatabaseConfiguration, DataSource> dataSourceProvider;
     private final DatabaseConfigurationProvider databaseConfigurationProvider;
 
     private final ConcurrentMap<String, Jdbi> jdbiTenantMap;
+    private final MultiTenantJdbiPlugin multiTenantJdbiPlugin;
 
-    private JdbiFactory(Initializer initializer) {
+    private JdbiTenantRegistry(Initializer initializer) {
         currentTenantResolver = initializer.currentTenantResolver;
         dataSourceProvider = initializer.dataSourceProvider;
         databaseConfigurationProvider = initializer.databaseConfigurationProvider;
         jdbiTenantMap = new ConcurrentHashMap<>();
+        multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(currentTenantResolver, databaseConfigurationProvider);
     }
 
     private DatabaseConfiguration getDatabaseConfigurationForTenant(String tenantId) {
-        return databaseConfigurationProvider.get(tenantId).orElseThrow(() ->
+        Optional<DatabaseConfiguration> optionalDatabaseConfiguration = databaseConfigurationProvider.get(tenantId);
+        return optionalDatabaseConfiguration.orElseThrow(() ->
                 new DatabaseConfigurationException("Cannot find database configuration for tenant " + tenantId));
+    }
+
+    Jdbi createJdbi(String tenantId) {
+        return Jdbi.create(dataSourceProvider.apply(getDatabaseConfigurationForTenant(tenantId)))
+                .installPlugin(multiTenantJdbiPlugin);
     }
 
     public Function<DatabaseConfiguration, DataSource> getDataSourceProvider() {
@@ -69,23 +78,28 @@ public class JdbiFactory {
         return databaseConfigurationProvider;
     }
 
+    public TenantResolver getCurrentTenantResolver() {
+        return currentTenantResolver;
+    }
+
+    public int getNumJdbiInstances() {
+        return jdbiTenantMap.size();
+    }
+
     public Jdbi getJdbi() {
-        return jdbiTenantMap.computeIfAbsent(currentTenantResolver.get(),
-                tenantId -> Jdbi.create(dataSourceProvider.apply(getDatabaseConfigurationForTenant(tenantId)))
-                        .installPlugin(new MultiTenantJdbiPlugin(currentTenantResolver,
-                                databaseConfigurationProvider)));
+        return jdbiTenantMap.computeIfAbsent(currentTenantResolver.get(), this::createJdbi);
     }
 
     public static final class Initializer {
 
-        private Supplier<String> currentTenantResolver;
+        private TenantResolver currentTenantResolver;
         private Function<DatabaseConfiguration, DataSource> dataSourceProvider;
         private DatabaseConfigurationProvider databaseConfigurationProvider;
 
         private Initializer() {
         }
 
-        public Initializer setCurrentTenantResolver(Supplier<String> currentTenantResolver) {
+        public Initializer setCurrentTenantResolver(TenantResolver currentTenantResolver) {
             this.currentTenantResolver = currentTenantResolver;
             return this;
         }
@@ -100,14 +114,14 @@ public class JdbiFactory {
             return this;
         }
 
-        public JdbiFactory init() {
-            if (INSTANCE == null) {
+        public JdbiTenantRegistry init() {
+            if (instance == null) {
                 checkNotNull(currentTenantResolver, "Current tenant resolver is required.");
-                checkNotNull(dataSourceProvider, "Datasource provider is required.");
                 checkNotNull(databaseConfigurationProvider, "Database configuration provider is required.");
-                INSTANCE = new JdbiFactory(this);
+                checkNotNull(dataSourceProvider, "Data source provider is required.");
+                instance = new JdbiTenantRegistry(this);
             }
-            return INSTANCE;
+            return instance;
         }
     }
 }

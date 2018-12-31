@@ -18,7 +18,6 @@
 
 package org.junkfactory.jdbi3.plugin.mt;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
@@ -35,7 +34,6 @@ import java.sql.Statement;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -94,7 +92,7 @@ public class MultiTenantJdbiPluginTest {
         MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(tenantResolver, mockDatabaseConfigurationProvider);
 
         //test tenant1
-        tenantResolver.set(tenant1);
+        tenantResolver.setCurrentTenant(tenant1);
         multiTenantJdbiPlugin.customizeConnection(mockConnection);
 
         //get number of tenants is called once

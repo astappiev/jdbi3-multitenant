@@ -16,16 +16,26 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.junkfactory.jdbi3.plugin.mt.configuration;
+package org.junkfactory.jdbi3.plugin.mt.resolver;
 
-public class DatabaseConfigurationException extends RuntimeException {
-    private static final long serialVersionUID = 4267596520744147966L;
+import java.util.function.Supplier;
 
-    public DatabaseConfigurationException(String s) {
-        super(s);
-    }
+/**
+ * Contract for all tenant resolvers
+ */
+public interface TenantResolver extends Supplier<String> {
 
-    public DatabaseConfigurationException(String s, Throwable throwable) {
-        super(s, throwable);
-    }
+    /**
+     * Get the current tenant
+     * @return The current tenant
+     */
+    @Override
+    String get();
+
+    /**
+     * Get the default tenant
+     * @return The default tenant
+     */
+    String getDefaultTenant();
+
 }
