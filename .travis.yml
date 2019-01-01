@@ -14,3 +14,6 @@ before_install:
 
 script:
 - mvn -e clean verify
+
+after_failure:
+  - cat target/surefire-reports/*.txt

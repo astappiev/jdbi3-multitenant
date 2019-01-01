@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
+import org.junkfactory.jdbi3.plugin.mt.provider.CachedPerHostDataSourceProvider;
 import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
 import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadContextTenantResolver;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -55,7 +56,7 @@ public class JdbiTenantRegistryIntegrationTest {
 
         JdbiTenantRegistry.newInitializer()
                 .setCurrentTenantResolver(ThreadContextTenantResolver.getInstance())
-                .setDataSourceProvider(config -> {
+                .setDataSourceProvider(new CachedPerHostDataSourceProvider(config -> {
 
                     String databaseOption = "serverTimezone=UTC&characterEncoding=UTF-8";
                     String jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?%s",
@@ -70,7 +71,7 @@ public class JdbiTenantRegistryIntegrationTest {
                     dataSource.setUsername(config.getUsername());
                     return dataSource;
 
-                })
+                }))
                 .setDatabaseConfigurationProvider(new DatabaseConfigurationProvider() {
 
                     @Override
