@@ -17,7 +17,7 @@ mvn clean install
 
 Initialize tenant resolver and JdbiTenantRegistry
 
-```java
+```
 ThreadContextTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init();
 
 JdbiTenantRegistry.newInitializer()
@@ -83,10 +83,8 @@ JdbiTenantRegistry.newInitializer()
             }
         }).init();
 ```
-
 Set the current tenant typically from the start of the RR-loop
-
-```java
+```
 //set current tenant before getting a Jdbi instance from the registry
 ThreadContextTenantResolver.getInstance().setCurrentTenant(tenantId);
 Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
