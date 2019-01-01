@@ -1,6 +1,6 @@
 # MultiTenant Jdbi3 Plugin [![Build Status](https://travis-ci.org/junkfactory/mt-jdbi3-plugin.svg?branch=master)](https://travis-ci.org/junkfactory/mt-jdbi3-plugin)
 
-A Jdbi3 plugin that adds support for schema per tenant setup for MySQL.
+A [Jdbi3](https://github.com/jdbi/jdbi) plugin that adds support for schema per tenant setup for MySQL.
 
 ## Compile and Install
 
@@ -18,10 +18,10 @@ mvn clean install
 Initialize tenant resolver and JdbiTenantRegistry
 
 ```java
-ThreadContextTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init();
+ThreadLocalTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init();
 
 JdbiTenantRegistry.newInitializer()
-        .setCurrentTenantResolver(ThreadContextTenantResolver.getInstance())
+        .setCurrentTenantResolver(ThreadLocalTenantResolver.getInstance())
         .setDataSourceProvider(new CachedPerHostDataSourceProvider(config -> {
 
             String databaseOption = "serverTimezone=UTC&characterEncoding=UTF-8";
@@ -88,7 +88,7 @@ Set the current tenant typically from the start of the RR-loop
 
 ```java
 //set current tenant before getting a Jdbi instance from the registry
-ThreadContextTenantResolver.getInstance().setCurrentTenant(tenantId);
+ThreadLocalTenantResolver.getInstance().setCurrentTenant(tenantId);
 Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
 Integer result = jdbi.withHandle(handle -> handle.select("select 1").mapTo(Integer.class).findOnly());
 assertEquals("Result must match", 1, result.intValue());
@@ -96,7 +96,7 @@ assertEquals("Result must match", 1, result.intValue());
 Integer userId = jdbi.withHandle(handle -> handle.createUpdate("insert into user (name) values (:name)")
         .bind("name", "defaultTenant")
         .executeAndReturnGeneratedKeys()
-        .map((rs, ctx) -> rs.getInt(1))
+        .mapTo(Integer.class)
         .findOnly());
         
 assertNotNull("User id must not be null", userId);

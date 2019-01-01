@@ -27,7 +27,7 @@ import org.junit.runner.RunWith;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
 import org.junkfactory.jdbi3.plugin.mt.provider.CachedPerHostDataSourceProvider;
 import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
-import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadContextTenantResolver;
+import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadLocalTenantResolver;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,10 +52,10 @@ public class JdbiTenantRegistryIntegrationTest {
     @BeforeClass
     public static void setUp() {
 
-        ThreadContextTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init();
+        ThreadLocalTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init();
 
         JdbiTenantRegistry.newInitializer()
-                .setCurrentTenantResolver(ThreadContextTenantResolver.getInstance())
+                .setCurrentTenantResolver(ThreadLocalTenantResolver.getInstance())
                 .setDataSourceProvider(new CachedPerHostDataSourceProvider(config -> {
 
                     String databaseOption = "serverTimezone=UTC&characterEncoding=UTF-8";
@@ -157,7 +157,7 @@ public class JdbiTenantRegistryIntegrationTest {
 
         final String tenantName = tenantId + "_name";
         Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
-        ThreadContextTenantResolver.getInstance().setCurrentTenant(tenantId);
+        ThreadLocalTenantResolver.getInstance().setCurrentTenant(tenantId);
         Integer result = jdbi.withHandle(handle -> handle.select("select 1").mapTo(Integer.class).findOnly());
         assertEquals("Result must match", 1, result.intValue());
 
@@ -165,7 +165,7 @@ public class JdbiTenantRegistryIntegrationTest {
         Integer userId = jdbi.withHandle(handle -> handle.createUpdate("insert into user (name) values (:name)")
                 .bind("name", tenantName)
                 .executeAndReturnGeneratedKeys()
-                .map((rs, ctx) -> rs.getInt(1))
+                .mapTo(Integer.class)
                 .findOnly());
         logger.info("Success with tenantId={}, id={}", tenantId, userId);
 
@@ -179,7 +179,7 @@ public class JdbiTenantRegistryIntegrationTest {
             assertTrue("Name must start with tenantId", ((String)user.get("name")).startsWith(tenantId));
         });
 
-        ThreadContextTenantResolver.getInstance().reset();
+        ThreadLocalTenantResolver.getInstance().reset();
 
     }
 }

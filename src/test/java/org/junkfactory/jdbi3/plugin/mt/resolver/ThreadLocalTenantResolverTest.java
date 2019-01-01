@@ -29,9 +29,9 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class ThreadContextTenantResolverTest {
+public class ThreadLocalTenantResolverTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(ThreadContextTenantResolverTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ThreadLocalTenantResolverTest.class);
 
     private static final String TEST_DEFAULT_TENANT = "TEST_DEFAULT_TENANT";
 
@@ -39,16 +39,16 @@ public class ThreadContextTenantResolverTest {
     public void testResolverIsPerThread() throws InterruptedException {
 
         try {
-            ThreadContextTenantResolver.newInitializer().init();
+            ThreadLocalTenantResolver.newInitializer().init();
             fail("Must throw IllegalArgumentException cause of not setting default tenant");
         } catch (IllegalArgumentException e) {
             assertEquals("Message must match", "Default tenant is required", e.getMessage());
         }
 
-        ThreadContextTenantResolver resolver = ThreadContextTenantResolver.newInitializer()
+        ThreadLocalTenantResolver resolver = ThreadLocalTenantResolver.newInitializer()
                 .setDefaultTenant(TEST_DEFAULT_TENANT)
                 .init();
-        assertEquals("Instance must match", resolver, ThreadContextTenantResolver.getInstance());
+        assertEquals("Instance must match", resolver, ThreadLocalTenantResolver.getInstance());
         assertEquals("Must match default tenant", TEST_DEFAULT_TENANT, resolver.get());
         assertEquals("Must match default tenant", TEST_DEFAULT_TENANT, resolver.getDefaultTenant());
 
