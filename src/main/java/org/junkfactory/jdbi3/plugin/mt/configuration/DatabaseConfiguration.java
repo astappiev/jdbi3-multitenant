@@ -133,7 +133,7 @@ public class DatabaseConfiguration implements Serializable {
             checkArgument(host != null && host.trim().length() > 0, "Host is required");
             checkArgument(port > 0, "Port is invalid");
             checkArgument(username != null && username.trim().length() > 0, "Username is required");
-            checkArgument(password != null && password.trim().length() > 0, "Password is required");
+            checkArgument(password != null, "Password is required");
             return new DatabaseConfiguration(this);
         }
     }

@@ -1,3 +1,16 @@
+dist: xenial
 language: java
+services:
+  - docker
+  - mysql
+
+before_install:
+  - mysql -e 'create database default_dev;'
+  - mysql -e 'create database tenant1_dev;'
+  - mysql -e 'create database tenant2_dev;'
+  - mysql default_dev -e 'create table user(id int primary key not null auto_increment, name varchar(255) not null);'
+  - mysql tenant1_dev -e 'create table user(id int primary key not null auto_increment, name varchar(255) not null);'
+  - mysql tenant2_dev -e 'create table user(id int primary key not null auto_increment, name varchar(255) not null);'
+
 script:
-  - mvn clean verify
+- mvn clean verify
