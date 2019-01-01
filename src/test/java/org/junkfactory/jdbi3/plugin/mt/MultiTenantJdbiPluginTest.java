@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junkfactory.jdbi3.plugin.mt.configuration.DatabaseConfiguration;
 import org.junkfactory.jdbi3.plugin.mt.provider.DatabaseConfigurationProvider;
+import org.junkfactory.jdbi3.plugin.mt.resolver.TenantResolver;
 import org.junkfactory.jdbi3.plugin.mt.resolver.ThreadContextTenantResolver;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -53,10 +54,12 @@ public class MultiTenantJdbiPluginTest {
 
         final String tenant1 = "tenant1";
 
+        TenantResolver mockTenantResolver = mock(TenantResolver.class);
+        doReturn(tenant1).when(mockTenantResolver).get();
         doReturn(1).when(mockDatabaseConfigurationProvider).getNumTenants();
         doReturn(Optional.of(mockDatabaseConfiguration)).when(mockDatabaseConfigurationProvider).get(eq(tenant1));
 
-        MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(() -> tenant1, mockDatabaseConfigurationProvider);
+        MultiTenantJdbiPlugin multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(mockTenantResolver, mockDatabaseConfigurationProvider);
         multiTenantJdbiPlugin.customizeConnection(mockConnection);
 
         //get number of tenants is called once
