@@ -20,22 +20,22 @@ package org.junkfactory.jdbi3.plugin.mt.resolver;
 
 import static org.jdbi.v3.core.generic.internal.Preconditions.checkArgument;
 
-public class ThreadContextTenantResolver implements TenantResolver {
+public class ThreadLocalTenantResolver implements TenantResolver {
 
-    private static ThreadContextTenantResolver instance;
+    private static ThreadLocalTenantResolver instance;
 
     public static Initializer newInitializer() {
         return new Initializer();
     }
 
-    public static ThreadContextTenantResolver getInstance() {
+    public static ThreadLocalTenantResolver getInstance() {
         return instance;
     }
 
     private final ThreadLocal<String> currentTenantHolder;
     private final String defaultTenant;
 
-    private ThreadContextTenantResolver(Initializer initializer) {
+    private ThreadLocalTenantResolver(Initializer initializer) {
         defaultTenant = initializer.defaultTenant;
         currentTenantHolder = ThreadLocal.withInitial(() -> defaultTenant);
     }
@@ -69,13 +69,13 @@ public class ThreadContextTenantResolver implements TenantResolver {
             return this;
         }
 
-        public ThreadContextTenantResolver init() {
+        public ThreadLocalTenantResolver init() {
             if (instance == null) {
                 checkArgument(defaultTenant != null && defaultTenant.trim().length() > 0,
                         "Default tenant is required");
-                instance = new ThreadContextTenantResolver(this);
+                instance = new ThreadLocalTenantResolver(this);
             } else {
-                throw new IllegalStateException("ThreadContextTenantResolver already initialized");
+                throw new IllegalStateException("ThreadLocalTenantResolver already initialized");
             }
             return instance;
         }
