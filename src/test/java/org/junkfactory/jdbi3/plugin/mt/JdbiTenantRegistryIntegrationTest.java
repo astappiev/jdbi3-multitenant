@@ -32,6 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -113,7 +114,7 @@ public class JdbiTenantRegistryIntegrationTest {
                                 default:
                                     config = null;
                         }
-                        return Optional.of(config);
+                        return Optional.ofNullable(config);
                     }
                 }).init();
     }
@@ -151,13 +152,21 @@ public class JdbiTenantRegistryIntegrationTest {
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.SECONDS);
 
+        Map<String, Boolean> results = JdbiTenantRegistry.getInstance().checkHandles();
+        logger.info("Checkhandle results={}", results);
+        assertTrue("Result must match", results.get(DEFAULT_TENANT));
+        assertTrue("Result must match", results.get(TENANT_1));
+        assertTrue("Result must match", results.get(TENANT_2));
+
+        assertFalse("Result must match", JdbiTenantRegistry.getInstance().checkHandle("unknown"));
+
     }
 
     private void testTenant(String tenantId) {
 
         final String tenantName = tenantId + "_name";
-        Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         ThreadLocalTenantResolver.getInstance().setCurrentTenant(tenantId);
+        Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         Integer result = jdbi.withHandle(handle -> handle.select("select 1").mapTo(Integer.class).findOnly());
         assertEquals("Result must match", 1, result.intValue());
 
