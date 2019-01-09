@@ -143,25 +143,25 @@ public class JdbiTenantRegistryTest {
         //test jdbi with default tenant
         Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
-        verify(mockStatement, times(1)).execute(sqlStringCaptor.capture());
+        verify(mockConnection, times(1)).setCatalog(sqlStringCaptor.capture());
         verify(mockDataSourceProvider, times(1)).apply(databaseConfigurationArgumentCaptor.capture());
         reset(mockStatement);
         jdbi.useHandle(handle -> handle.select("select 1"));
-        verify(mockStatement, times(1)).execute(sqlStringCaptor.capture());
+        verify(mockConnection, times(2)).setCatalog(sqlStringCaptor.capture());
         verify(mockDataSourceProvider, times(1)).apply(databaseConfigurationArgumentCaptor.capture());
         assertEquals("Host must match", defaultHost, databaseConfigurationArgumentCaptor.getValue().getHost());
         assertEquals("Jdbi num instances must match", 1, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
 
         //test jdbi tenant 1
-        reset(mockStatement);
+        reset(mockConnection);
         sqlStringCaptor = ArgumentCaptor.forClass(String.class);
 
         doReturn(tenant1).when(mockTenantResolver).get();
         jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
-        verify(mockStatement, times(2)).execute(sqlStringCaptor.capture());
-        assertEquals("Sql must match", "USE " + tenant1Database, sqlStringCaptor.getAllValues().get(0));
-        assertEquals("Sql must match", "USE " + defaultDatabase, sqlStringCaptor.getAllValues().get(1));
+        verify(mockConnection, times(2)).setCatalog(sqlStringCaptor.capture());
+        assertEquals("Sql must match", tenant1Database, sqlStringCaptor.getAllValues().get(0));
+        assertEquals("Sql must match", defaultDatabase, sqlStringCaptor.getAllValues().get(1));
         //same host as default so num invocation still the same
         verify(mockDataSourceProvider, times(1)).apply(databaseConfigurationArgumentCaptor.capture());
         jdbi.useHandle(handle -> handle.select("select 1"));
@@ -170,15 +170,15 @@ public class JdbiTenantRegistryTest {
         assertEquals("Host must match", tenant1Host, databaseConfigurationArgumentCaptor.getValue().getHost());
         assertEquals("Jdbi num instances must match", 2, JdbiTenantRegistry.getInstance().getNumJdbiInstances());
 
-        reset(mockStatement);
+        reset(mockConnection);
         sqlStringCaptor = ArgumentCaptor.forClass(String.class);
 
         doReturn(tenant2).when(mockTenantResolver).get();
         jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
-        verify(mockStatement, times(2)).execute(sqlStringCaptor.capture());
-        assertEquals("Sql must match", "USE " + tenant2Database, sqlStringCaptor.getAllValues().get(0));
-        assertEquals("Sql must match", "USE " + defaultDatabase, sqlStringCaptor.getAllValues().get(1));
+        verify(mockConnection, times(2)).setCatalog(sqlStringCaptor.capture());
+        assertEquals("Sql must match", tenant2Database, sqlStringCaptor.getAllValues().get(0));
+        assertEquals("Sql must match", defaultDatabase, sqlStringCaptor.getAllValues().get(1));
         //diff host new invocation
         verify(mockDataSourceProvider, times(2)).apply(databaseConfigurationArgumentCaptor.capture());
         jdbi.useHandle(handle -> handle.select("select 1"));

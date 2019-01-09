@@ -99,11 +99,9 @@ public class MultiTenantJdbiPluginTest {
 
         //get number of tenants is called once
         verify(mockDatabaseConfigurationProvider, times(1)).getNumTenants();
-        //only 1 tenant, verify connection.createStatement() was not called
-        verify(mockConnection, times(1)).createStatement();
-        //verify use query
-        verify(mockStatement, times(1)).execute(sqlQueryCaptor.capture());
-        assertEquals("SQL Query must match", "USE " + tenant1DatabaseName, sqlQueryCaptor.getValue());
+        //verify set catalog
+        verify(mockConnection, times(1)).setCatalog(sqlQueryCaptor.capture());
+        assertEquals("SQL Query must match", tenant1DatabaseName, sqlQueryCaptor.getValue());
 
 
         doReturn(defaultTenant).when(tenantResolver).get();
@@ -111,11 +109,9 @@ public class MultiTenantJdbiPluginTest {
 
         //get number of tenants is called once
         verify(mockDatabaseConfigurationProvider, times(2)).getNumTenants();
-        //only 1 tenant, verify connection.createStatement() was not called
-        verify(mockConnection, times(2)).createStatement();
-        //verify use query
-        verify(mockStatement, times(2)).execute(sqlQueryCaptor.capture());
-        assertEquals("SQL Query must match", "USE " + defaultTenantDatabaseName, sqlQueryCaptor.getValue());
+        //verify set catalog
+        verify(mockConnection, times(2)).setCatalog(sqlQueryCaptor.capture());
+        assertEquals("SQL Query must match", defaultTenantDatabaseName, sqlQueryCaptor.getValue());
 
     }
 

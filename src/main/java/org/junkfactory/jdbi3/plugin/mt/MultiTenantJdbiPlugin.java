@@ -75,8 +75,8 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
         logger.debug("Customize connection, tenant={}, database={}, numTenants={}", currentTenant, databaseConfiguration, numTenants);
         //only customize connection only if number of tenants
         if (numTenants > 1) {
-            try (Statement statement = conn.createStatement()) {
-                statement.execute("USE " + databaseConfiguration.getDatabaseName());
+            try {
+                conn.setCatalog(databaseConfiguration.getDatabaseName());
             } catch (SQLException e) {
                 logger.error("Failed to switch db for tenant={}, database={}", currentTenant, databaseConfiguration);
                 throw new IllegalStateException("Failed to switch db for tenant " + currentTenant, e);
