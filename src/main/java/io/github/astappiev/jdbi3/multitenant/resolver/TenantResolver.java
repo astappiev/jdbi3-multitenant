@@ -9,6 +9,7 @@ public interface TenantResolver extends Supplier<String> {
 
     /**
      * Get the current tenant
+     *
      * @return The current tenant
      */
     @Override
@@ -16,6 +17,7 @@ public interface TenantResolver extends Supplier<String> {
 
     /**
      * Get the default tenant
+     *
      * @return The default tenant
      */
     String getDefaultTenant();

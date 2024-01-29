@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface DatabaseConfigurationProvider {
 
     int getNumTenants();
+
     Optional<DatabaseConfiguration> get(String tenantId);
 
 }

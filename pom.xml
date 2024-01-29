@@ -11,171 +11,97 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>1.8</java.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
+
+        <maven.dependency.junit.version>5.10.1</maven.dependency.junit.version>
+        <maven.dependency.mockito.version>5.8.0</maven.dependency.mockito.version>
+        <maven.dependency.testcontainers.version>1.19.3</maven.dependency.testcontainers.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- test dependencies -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.12</version>
-            </dependency>
-            <dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest-library</artifactId>
-                <version>1.3</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>2.17.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>1.7.25</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zaxxer</groupId>
-                <artifactId>HikariCP</artifactId>
-                <version>3.2.0</version>
-            </dependency>
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>8.0.13</version>
-            </dependency>
-
-            <!-- compile dependencies -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.25</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jdbi</groupId>
-                <artifactId>jdbi3-core</artifactId>
-                <version>3.5.1</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <!-- test dependencies -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${maven.dependency.junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-library</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${maven.dependency.junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${maven.dependency.mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${maven.dependency.testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+            <version>${maven.dependency.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
+            <version>2.0.11</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.3.2</version>
             <scope>test</scope>
         </dependency>
-
 
         <!-- compile dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>2.0.11</version>
         </dependency>
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
+            <version>3.43.0</version>
         </dependency>
-
     </dependencies>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.11</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins </groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.19</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.apache.maven.surefire</groupId>
-                            <artifactId>surefire-junit47</artifactId>
-                            <version>2.12</version>
-                        </dependency>
-                    </dependencies>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.maven.surefire</groupId>
-                        <artifactId>surefire-junit47</artifactId>
-                        <version>2.12</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <systemProperties>
-                    </systemProperties>
-                    <includes>
-                        <include>**/*.class</include>
-                    </includes>
-                    <excludedGroups>io.github.astappiev.jdbi3.multitenant.IntegrationTest</excludedGroups>
-                </configuration>
+                <version>3.2.3</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins </groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <groups>io.github.astappiev.jdbi3.multitenant.IntegrationTest</groups>
-                    <environmentVariables>
-                    </environmentVariables>
-                    <systemPropertyVariables>
-                    </systemPropertyVariables>
-                </configuration>
+                <version>3.2.3</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>integration-test</goal>
+                            <goal>verify</goal>
                         </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/*.class</include>
-                            </includes>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

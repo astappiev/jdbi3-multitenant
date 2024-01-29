@@ -1,13 +1,13 @@
 package io.github.astappiev.jdbi3.multitenant;
 
+import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
+import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfigurationException;
 import io.github.astappiev.jdbi3.multitenant.provider.DatabaseConfigurationProvider;
+import io.github.astappiev.jdbi3.multitenant.resolver.TenantResolver;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.spi.JdbiPlugin;
 import org.jdbi.v3.core.statement.StatementBuilder;
 import org.jdbi.v3.core.statement.StatementContext;
-import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
-import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfigurationException;
-import io.github.astappiev.jdbi3.multitenant.resolver.TenantResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +48,15 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
 
     /**
      * Switch the tenant database. Only switches the database if there is more than 1 tenant
+     *
      * @param conn The JDBC {@link Connection}
      */
     protected void switchTenantDatabaseIfNecessary(Connection conn, String currentTenant) {
         final DatabaseConfiguration databaseConfiguration = databaseConfigurationProvider.get(currentTenant)
-                .orElseThrow(() -> new DatabaseConfigurationException("Cannot find database configuration for tenant " + currentTenant));
+            .orElseThrow(() -> new DatabaseConfigurationException("Cannot find database configuration for tenant " + currentTenant));
         final int numTenants = databaseConfigurationProvider.getNumTenants();
         logger.debug("Customize connection, tenant={}, database={}, numTenants={}", currentTenant, databaseConfiguration, numTenants);
-        //only customize connection only if number of tenants
+        // customize connection only if number of tenants
         if (numTenants > 1) {
             try {
                 conn.setCatalog(databaseConfiguration.getDatabaseName());
@@ -69,7 +70,7 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
     protected void resetConnection(Connection conn) {
         if (!currentTenantResolver.getDefaultTenant().equals(currentTenantResolver.get())) {
             logger.debug("Resetting connection to default tenant={}", currentTenantResolver.getDefaultTenant());
-            //reset to default tenant if it was switch to another
+            // reset to default tenant if it was switched to another
             switchTenantDatabaseIfNecessary(conn, currentTenantResolver.getDefaultTenant());
         }
     }
@@ -99,13 +100,13 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
         @Override
         public void close(Connection conn, String sql, Statement stmt) throws SQLException {
             delegate.close(conn, sql, stmt);
-            resetConnection(conn);
+            // resetConnection(conn); FIXME: I don't understand why we need this
         }
 
         @Override
         public void close(Connection conn) {
             delegate.close(conn);
-            resetConnection(conn);
+            // resetConnection(conn); FIXME: I don't understand why we need this
         }
     }
 

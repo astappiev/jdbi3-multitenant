@@ -3,22 +3,22 @@ package io.github.astappiev.jdbi3.multitenant.configuration;
 import java.io.Serializable;
 import java.util.Objects;
 
-import static org.jdbi.v3.core.generic.internal.Preconditions.checkArgument;
-
 public class DatabaseConfiguration implements Serializable {
-
     private static final long serialVersionUID = -8293126037354414243L;
 
-    private final String databaseName;
-    private final String host;
-    private final int port;
+    private final String driverClassName;
+    private final String jdbcUrl;
     private final String username;
     private final String password;
 
     private DatabaseConfiguration(Builder builder) {
-        databaseName = builder.databaseName.trim();
-        host = builder.host.trim();
-        port = builder.port;
+        if (builder.driverClassName != null) {
+            driverClassName = builder.driverClassName.trim();
+        } else {
+            driverClassName = null;
+        }
+
+        jdbcUrl = builder.jdbcUrl.trim();
         username = builder.username.trim();
         password = builder.password.trim();
     }
@@ -27,16 +27,17 @@ public class DatabaseConfiguration implements Serializable {
         return new Builder();
     }
 
+    public String getDriverClassName() {
+        return driverClassName;
+    }
+
+    public String getJdbcUrl() {
+        return jdbcUrl;
+    }
+
     public String getDatabaseName() {
-        return databaseName;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
+        int queryIndex = jdbcUrl.indexOf('?');
+        return jdbcUrl.substring(jdbcUrl.lastIndexOf('/') + 1, queryIndex >= 0 ? queryIndex : jdbcUrl.length());
     }
 
     public String getUsername() {
@@ -52,51 +53,43 @@ public class DatabaseConfiguration implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DatabaseConfiguration that = (DatabaseConfiguration) o;
-        return port == that.port &&
-                Objects.equals(databaseName, that.databaseName) &&
-                Objects.equals(host, that.host) &&
-                Objects.equals(username, that.username) &&
-                Objects.equals(password, that.password);
+        return Objects.equals(driverClassName, that.driverClassName) &&
+            Objects.equals(jdbcUrl, that.jdbcUrl) &&
+            Objects.equals(username, that.username) &&
+            Objects.equals(password, that.password);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(databaseName, host, port, username, password);
+        return Objects.hash(driverClassName, jdbcUrl, username, password);
     }
 
     @Override
     public String toString() {
         return "DatabaseConfiguration{" +
-                "databaseName='" + databaseName + '\'' +
-                ", host='" + host + '\'' +
-                ", port=" + port +
-                ", username='" + username + '\'' +
-                ", password='" + (password == null || password.isEmpty() ? "not set" : "set") + '\'' +
-                '}';
+            "databaseName='" + driverClassName + '\'' +
+            ", host='" + jdbcUrl + '\'' +
+            ", username='" + username + '\'' +
+            ", password='" + (password == null || password.isEmpty() ? "not set" : "set") + '\'' +
+            '}';
     }
 
     public static final class Builder {
-        private String databaseName;
-        private String host;
-        private int port;
+        private String driverClassName;
+        private String jdbcUrl;
         private String username;
         private String password;
 
         private Builder() {
         }
 
-        public Builder setDatabaseName(String databaseName) {
-            this.databaseName = databaseName;
+        public Builder setDriverClassName(String driverClassName) {
+            this.driverClassName = driverClassName;
             return this;
         }
 
-        public Builder setHost(String host) {
-            this.host = host;
-            return this;
-        }
-
-        public Builder setPort(int port) {
-            this.port = port;
+        public Builder setJdbcUrl(String jdbcUrl) {
+            this.jdbcUrl = jdbcUrl;
             return this;
         }
 
@@ -111,11 +104,9 @@ public class DatabaseConfiguration implements Serializable {
         }
 
         public DatabaseConfiguration build() {
-            checkArgument(databaseName != null && databaseName.trim().length() > 0, "Database name is required");
-            checkArgument(host != null && host.trim().length() > 0, "Host is required");
-            checkArgument(port > 0, "Port is invalid");
-            checkArgument(username != null && username.trim().length() > 0, "Username is required");
-            checkArgument(password != null, "Password is required");
+            Objects.requireNonNull(jdbcUrl, "JDBC URL is required");
+            Objects.requireNonNull(username, "Username is required");
+            Objects.requireNonNull(password, "Password is required");
             return new DatabaseConfiguration(this);
         }
     }

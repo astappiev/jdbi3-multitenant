@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 /**
- * Data data source provider cached per database host specified in {@link DatabaseConfiguration#getHost()}<br/>
+ * Data source provider cached per database host specified in {@link DatabaseConfiguration#getJdbcUrl()}<br/>
  * Keeps a concurrent map holding references to {@link DataSource} where the key is the database host.<br/>
  * The data sources creation are delegated to {@link CachedPerHostDataSourceProvider#dataSourceProvider}
  */
@@ -24,6 +24,6 @@ public class CachedPerHostDataSourceProvider implements Function<DatabaseConfigu
 
     @Override
     public DataSource apply(DatabaseConfiguration databaseConfiguration) {
-        return dataSourceMap.computeIfAbsent(databaseConfiguration.getHost(), host -> dataSourceProvider.apply(databaseConfiguration));
+        return dataSourceMap.computeIfAbsent(databaseConfiguration.getJdbcUrl(), host -> dataSourceProvider.apply(databaseConfiguration));
     }
 }

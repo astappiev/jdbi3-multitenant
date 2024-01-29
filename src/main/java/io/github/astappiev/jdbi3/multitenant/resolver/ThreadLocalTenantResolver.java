@@ -1,10 +1,17 @@
 package io.github.astappiev.jdbi3.multitenant.resolver;
 
-import static org.jdbi.v3.core.generic.internal.Preconditions.checkArgument;
+import java.util.Objects;
 
 public class ThreadLocalTenantResolver implements TenantResolver {
 
     private static ThreadLocalTenantResolver instance;
+    private final ThreadLocal<String> currentTenantHolder;
+    private final String defaultTenant;
+
+    private ThreadLocalTenantResolver(Initializer initializer) {
+        defaultTenant = initializer.defaultTenant;
+        currentTenantHolder = ThreadLocal.withInitial(() -> defaultTenant);
+    }
 
     public static Initializer newInitializer() {
         return new Initializer();
@@ -14,12 +21,8 @@ public class ThreadLocalTenantResolver implements TenantResolver {
         return instance;
     }
 
-    private final ThreadLocal<String> currentTenantHolder;
-    private final String defaultTenant;
-
-    private ThreadLocalTenantResolver(Initializer initializer) {
-        defaultTenant = initializer.defaultTenant;
-        currentTenantHolder = ThreadLocal.withInitial(() -> defaultTenant);
+    public static void releaseInstance() {
+        instance = null;
     }
 
     @Override
@@ -53,8 +56,7 @@ public class ThreadLocalTenantResolver implements TenantResolver {
 
         public ThreadLocalTenantResolver init() {
             if (instance == null) {
-                checkArgument(defaultTenant != null && defaultTenant.trim().length() > 0,
-                        "Default tenant is required");
+                Objects.requireNonNull(defaultTenant, "Default tenant is required");
                 instance = new ThreadLocalTenantResolver(this);
             } else {
                 throw new IllegalStateException("ThreadLocalTenantResolver already initialized");
