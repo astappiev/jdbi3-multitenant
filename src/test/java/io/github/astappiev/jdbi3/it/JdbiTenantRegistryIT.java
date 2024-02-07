@@ -1,6 +1,7 @@
-package io.github.astappiev.jdbi3.multitenant;
+package io.github.astappiev.jdbi3.it;
 
 import com.zaxxer.hikari.HikariDataSource;
+import io.github.astappiev.jdbi3.multitenant.JdbiTenantRegistry;
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
 import io.github.astappiev.jdbi3.multitenant.provider.CachedPerHostDataSourceProvider;
 import io.github.astappiev.jdbi3.multitenant.provider.DatabaseConfigurationProvider;

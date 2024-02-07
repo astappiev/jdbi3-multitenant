@@ -75,7 +75,7 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
         }
     }
 
-    class StatementBuilderDelegate implements StatementBuilder {
+    static class StatementBuilderDelegate implements StatementBuilder {
         private final StatementBuilder delegate;
 
         public StatementBuilderDelegate(StatementBuilder delegate) {

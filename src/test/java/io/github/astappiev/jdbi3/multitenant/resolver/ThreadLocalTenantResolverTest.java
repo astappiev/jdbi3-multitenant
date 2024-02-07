@@ -28,12 +28,23 @@ class ThreadLocalTenantResolverTest {
     }
 
     @Test
-    void testResolverWithoutTenant() {
+    void testThrowOnNoDefault() {
         try {
             ThreadLocalTenantResolver.newInitializer().init();
-            fail("Must throw IllegalArgumentException cause of not setting default tenant");
+            fail("Must throw NullPointerException cause of not setting default tenant");
         } catch (NullPointerException e) {
             assertEquals("Default tenant is required", e.getMessage());
+        }
+    }
+
+    @Test
+    void testThrowOnMultipleInitialisations() {
+        try {
+            ThreadLocalTenantResolver.newInitializer().setDefaultTenant(TEST_DEFAULT_TENANT).init();
+            ThreadLocalTenantResolver.newInitializer().setDefaultTenant(TEST_DEFAULT_TENANT).init();
+            fail("Must throw NullPointerException cause of not setting default tenant");
+        } catch (IllegalStateException e) {
+            assertEquals("ThreadLocalTenantResolver already initialized", e.getMessage());
         }
     }
 
@@ -44,26 +55,16 @@ class ThreadLocalTenantResolverTest {
         assertEquals(TEST_DEFAULT_TENANT, resolver.get());
         assertEquals(TEST_DEFAULT_TENANT, resolver.getDefaultTenant());
 
-        final String thread1Tenant = "th1Tenant";
-        final String thread2Tenant = "th2Tenant";
-        final String thread3Tenant = "th3Tenant";
-
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
-        executorService.execute(() -> {
-            logger.info("Setting tenant={}", thread2Tenant);
-            resolver.setCurrentTenant(thread2Tenant);
-            assertEquals(thread2Tenant, resolver.get());
-        });
-        executorService.execute(() -> {
-            logger.info("Setting tenant={}", thread1Tenant);
-            resolver.setCurrentTenant(thread1Tenant);
-            assertEquals(thread1Tenant, resolver.get());
-        });
-        executorService.execute(() -> {
-            logger.info("Setting tenant={}", thread3Tenant);
-            resolver.setCurrentTenant(thread3Tenant);
-            assertEquals(thread3Tenant, resolver.get());
-        });
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        for (int i = 0; i < 10; i++) {
+            String tenantName = "th" + i + "Tenant";
+            executorService.execute(() -> {
+                logger.info("Setting tenant={}", tenantName);
+                resolver.setCurrentTenant(tenantName);
+                logger.info("Retrieving tenant={}", resolver.get());
+                assertEquals(tenantName, resolver.get());
+            });
+        }
 
         assertEquals(TEST_DEFAULT_TENANT, resolver.get());
         assertEquals(TEST_DEFAULT_TENANT, resolver.getDefaultTenant());
