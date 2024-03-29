@@ -9,7 +9,9 @@ import java.util.Optional;
  */
 public interface DatabaseConfigurationProvider {
 
-    int getNumTenants();
+    default int getNumTenants() {
+        return -1;
+    }
 
     Optional<DatabaseConfiguration> get(String tenantId);
 

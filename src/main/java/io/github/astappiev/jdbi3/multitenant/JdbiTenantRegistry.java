@@ -103,6 +103,16 @@ public class JdbiTenantRegistry {
     }
 
     /**
+     * Get the cached {@link Jdbi} instance for the tenant resolved by {@link JdbiTenantRegistry#currentTenantResolver}.<br/>
+     * If a {@link Jdbi} instance does not currently exist for the tenant, it creates a new instance
+     *
+     * @return A {@link Jdbi} instance
+     */
+    public Jdbi getDefaultJdbi() {
+        return getJdbi(currentTenantResolver.getDefaultTenant());
+    }
+
+    /**
      * Get the cached {@link Jdbi} for tenantId. Creates a new instance when there's no instance yet.
      *
      * @param tenantId The tenant id

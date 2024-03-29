@@ -57,7 +57,7 @@ class MultiTenantJdbiPlugin implements JdbiPlugin {
         final int numTenants = databaseConfigurationProvider.getNumTenants();
         logger.debug("Customize connection, tenant={}, database={}, numTenants={}", currentTenant, databaseConfiguration, numTenants);
         // customize connection only if number of tenants
-        if (numTenants > 1) {
+        if (numTenants == -1 || numTenants > 1) {
             try {
                 conn.setCatalog(databaseConfiguration.getDatabaseName());
             } catch (SQLException e) {

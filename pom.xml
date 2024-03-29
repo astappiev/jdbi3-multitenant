@@ -13,10 +13,20 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>11</maven.compiler.release>
 
-        <maven.dependency.junit.version>5.10.1</maven.dependency.junit.version>
-        <maven.dependency.mockito.version>5.8.0</maven.dependency.mockito.version>
-        <maven.dependency.testcontainers.version>1.19.3</maven.dependency.testcontainers.version>
+        <maven.dependency.jdbi.version>3.45.1</maven.dependency.jdbi.version>
+        <maven.dependency.slf4j.version>2.0.12</maven.dependency.slf4j.version>
+        <maven.dependency.junit.version>5.10.2</maven.dependency.junit.version>
+        <maven.dependency.mockito.version>5.11.0</maven.dependency.mockito.version>
+        <maven.dependency.testcontainers.version>1.19.7</maven.dependency.testcontainers.version>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>Nota24 GitHub Packages</name>
+            <url>https://maven.pkg.github.com/nota24/basement</url>
+        </repository>
+    </distributionManagement>
 
     <dependencies>
         <!-- test dependencies -->
@@ -53,7 +63,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>2.0.11</version>
+            <version>${maven.dependency.slf4j.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -65,7 +75,7 @@
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
-            <version>3.3.2</version>
+            <version>3.3.3</version>
             <scope>test</scope>
         </dependency>
 
@@ -73,26 +83,31 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.11</version>
+            <version>${maven.dependency.slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
-            <version>3.43.0</version>
+            <version>${maven.dependency.jdbi.version}</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.16.2</version>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.3</version>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins </groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.2.3</version>
+                <version>3.2.5</version>
                 <executions>
                     <execution>
                         <goals>
