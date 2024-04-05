@@ -2,8 +2,6 @@ package io.github.astappiev.jdbi3.multitenant;
 
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfigurationException;
-import io.github.astappiev.jdbi3.multitenant.provider.CachedPerHostDataSourceProvider;
-import io.github.astappiev.jdbi3.multitenant.provider.DatabaseConfigurationProvider;
 import io.github.astappiev.jdbi3.multitenant.resolver.TenantResolver;
 import io.github.astappiev.jdbi3.multitenant.resolver.ThreadLocalTenantResolver;
 import org.jdbi.v3.core.Jdbi;
@@ -20,7 +18,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Optional;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,7 +34,7 @@ class JdbiTenantRegistryTest {
     Function<DatabaseConfiguration, DataSource> mockDataSourceProvider;
 
     @Mock
-    DatabaseConfigurationProvider mockDatabaseConfigurationProvider;
+    Function<String, DatabaseConfiguration> mockDatabaseConfigurationProvider;
 
     @Mock
     Connection mockConnection;
@@ -63,10 +60,9 @@ class JdbiTenantRegistryTest {
         JdbiTenantRegistry.releaseInstance();
         ThreadLocalTenantResolver.releaseInstance();
 
-        lenient().doReturn(Optional.of(defaultDbConfig)).when(mockDatabaseConfigurationProvider).get(DEFAULT_TENANT);
-        lenient().doReturn(Optional.of(tenant1DbConfig)).when(mockDatabaseConfigurationProvider).get(TENANT_1);
-        lenient().doReturn(Optional.of(tenant2DbConfig)).when(mockDatabaseConfigurationProvider).get(TENANT_2);
-        lenient().doReturn(3).when(mockDatabaseConfigurationProvider).getNumTenants();
+        lenient().doReturn(defaultDbConfig).when(mockDatabaseConfigurationProvider).apply(DEFAULT_TENANT);
+        lenient().doReturn(tenant1DbConfig).when(mockDatabaseConfigurationProvider).apply(TENANT_1);
+        lenient().doReturn(tenant2DbConfig).when(mockDatabaseConfigurationProvider).apply(TENANT_2);
 
         lenient().doReturn(DEFAULT_TENANT).when(mockTenantResolver).get();
         lenient().doReturn(DEFAULT_TENANT).when(mockTenantResolver).getDefaultTenant();
@@ -93,7 +89,7 @@ class JdbiTenantRegistryTest {
         JdbiTenantRegistry.newInitializer()
             .setCurrentTenantResolver(mockTenantResolver)
             .setDatabaseConfigurationProvider(mockDatabaseConfigurationProvider)
-            .setDataSourceProvider(new CachedPerHostDataSourceProvider(mockDataSourceProvider))
+            .setDataSourceProvider(mockDataSourceProvider)
             .init();
 
         doReturn("yet_another_tenant").when(mockTenantResolver).get();
@@ -102,17 +98,16 @@ class JdbiTenantRegistryTest {
 
     @Test
     void testGetJdbi() {
-        CachedPerHostDataSourceProvider cachedPerHostDataSourceProvider = new CachedPerHostDataSourceProvider(mockDataSourceProvider);
         JdbiTenantRegistry.newInitializer()
             .setCurrentTenantResolver(mockTenantResolver)
             .setDatabaseConfigurationProvider(mockDatabaseConfigurationProvider)
-            .setDataSourceProvider(cachedPerHostDataSourceProvider)
+            .setDataSourceProvider(mockDataSourceProvider)
             .init();
 
         assertSame(JdbiTenantRegistry.getInstance(), JdbiTenantRegistry.getInstance(), "Instance must match singleton instance");
         assertSame(mockTenantResolver, JdbiTenantRegistry.getInstance().getCurrentTenantResolver(), "Tenant resolver must match");
         assertSame(mockDatabaseConfigurationProvider, JdbiTenantRegistry.getInstance().getDatabaseConfigurationProvider(), "Database configuration provider must match");
-        assertSame(cachedPerHostDataSourceProvider, JdbiTenantRegistry.getInstance().getDataSourceProvider(), "Datasource provider must match");
+        assertSame(mockDataSourceProvider, JdbiTenantRegistry.getInstance().getDataSourceProvider(), "Datasource provider must match");
 
         // number of jdbi instances remain the same as long as tenants are existing
         doReturn(TENANT_1).when(mockTenantResolver).get();
@@ -137,7 +132,7 @@ class JdbiTenantRegistryTest {
         JdbiTenantRegistry.newInitializer()
             .setCurrentTenantResolver(mockTenantResolver)
             .setDatabaseConfigurationProvider(mockDatabaseConfigurationProvider)
-            .setDataSourceProvider(new CachedPerHostDataSourceProvider(mockDataSourceProvider))
+            .setDataSourceProvider(mockDataSourceProvider)
             .init();
 
         testHandle(mockConnection, 1);
@@ -160,10 +155,6 @@ class JdbiTenantRegistryTest {
     private void testHandle(Connection mockConnection, int instances) throws SQLException {
         Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
         jdbi.useHandle(handle -> handle.select("select 1"));
-
-        ArgumentCaptor<String> sqlStringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(mockConnection, times(1)).setCatalog(sqlStringCaptor.capture());
-        assertEquals(mockTenantResolver.get(), sqlStringCaptor.getAllValues().get(0));
 
         // num invocations remain the same
         verify(mockDataSourceProvider, times(instances)).apply(databaseConfigurationArgumentCaptor.capture());

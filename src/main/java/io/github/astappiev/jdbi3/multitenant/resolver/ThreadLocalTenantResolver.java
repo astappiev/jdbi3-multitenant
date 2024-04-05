@@ -1,7 +1,5 @@
 package io.github.astappiev.jdbi3.multitenant.resolver;
 
-import java.util.Objects;
-
 public class ThreadLocalTenantResolver implements TenantResolver {
 
     private static ThreadLocalTenantResolver instance;
@@ -56,7 +54,6 @@ public class ThreadLocalTenantResolver implements TenantResolver {
 
         public ThreadLocalTenantResolver init() {
             if (instance == null) {
-                Objects.requireNonNull(defaultTenant, "Default tenant is required");
                 instance = new ThreadLocalTenantResolver(this);
             } else {
                 throw new IllegalStateException("ThreadLocalTenantResolver already initialized");

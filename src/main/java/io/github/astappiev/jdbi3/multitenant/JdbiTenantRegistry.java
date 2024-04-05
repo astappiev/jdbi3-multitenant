@@ -2,7 +2,6 @@ package io.github.astappiev.jdbi3.multitenant;
 
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfigurationException;
-import io.github.astappiev.jdbi3.multitenant.provider.DatabaseConfigurationProvider;
 import io.github.astappiev.jdbi3.multitenant.resolver.TenantResolver;
 import io.github.astappiev.jdbi3.multitenant.resolver.ThreadLocalTenantResolver;
 import org.jdbi.v3.core.Handle;
@@ -27,18 +26,18 @@ public class JdbiTenantRegistry {
     private static JdbiTenantRegistry instance;
     private final TenantResolver currentTenantResolver;
     private final Function<DatabaseConfiguration, DataSource> dataSourceProvider;
-    private final DatabaseConfigurationProvider databaseConfigurationProvider;
+    private final Function<String, DatabaseConfiguration> databaseConfigurationProvider;
+    private final Function<Jdbi, Void> jdbiCustomizer;
     private final Predicate<Handle> optionalConnectionTester;
     private final ConcurrentMap<String, Jdbi> jdbiTenantMap;
-    private final MultiTenantJdbiPlugin multiTenantJdbiPlugin;
 
     private JdbiTenantRegistry(Initializer initializer) {
         currentTenantResolver = initializer.currentTenantResolver;
         dataSourceProvider = initializer.dataSourceProvider;
         databaseConfigurationProvider = initializer.databaseConfigurationProvider;
         optionalConnectionTester = initializer.connectionTester;
+        jdbiCustomizer = initializer.jdbiCustomizer;
         jdbiTenantMap = new ConcurrentHashMap<>();
-        multiTenantJdbiPlugin = new MultiTenantJdbiPlugin(currentTenantResolver, databaseConfigurationProvider);
     }
 
     public static JdbiTenantRegistry getInstance() {
@@ -54,7 +53,7 @@ public class JdbiTenantRegistry {
     }
 
     private DatabaseConfiguration getDatabaseConfigurationForTenant(String tenantId) {
-        Optional<DatabaseConfiguration> optionalDatabaseConfiguration = databaseConfigurationProvider.get(tenantId);
+        Optional<DatabaseConfiguration> optionalDatabaseConfiguration = Optional.ofNullable(databaseConfigurationProvider.apply(tenantId));
         return optionalDatabaseConfiguration.orElseThrow(() ->
             new DatabaseConfigurationException("Cannot find database configuration for tenant " + tenantId));
     }
@@ -65,17 +64,20 @@ public class JdbiTenantRegistry {
      * @param tenantId The tenant id
      * @return A new {@link Jdbi} instance
      */
-    Jdbi createJdbi(String tenantId) {
+    private Jdbi createJdbi(String tenantId) {
         logger.debug("Creating new jdbi for {}", tenantId);
-        return Jdbi.create(dataSourceProvider.apply(getDatabaseConfigurationForTenant(tenantId)))
-            .installPlugin(multiTenantJdbiPlugin);
+        Jdbi jdbi = Jdbi.create(dataSourceProvider.apply(getDatabaseConfigurationForTenant(tenantId)));
+        if (jdbiCustomizer != null) {
+            jdbiCustomizer.apply(jdbi);
+        }
+        return jdbi;
     }
 
     public Function<DatabaseConfiguration, DataSource> getDataSourceProvider() {
         return dataSourceProvider;
     }
 
-    public DatabaseConfigurationProvider getDatabaseConfigurationProvider() {
+    public Function<String, DatabaseConfiguration> getDatabaseConfigurationProvider() {
         return databaseConfigurationProvider;
     }
 
@@ -160,7 +162,8 @@ public class JdbiTenantRegistry {
     public static final class Initializer {
         private TenantResolver currentTenantResolver;
         private Function<DatabaseConfiguration, DataSource> dataSourceProvider;
-        private DatabaseConfigurationProvider databaseConfigurationProvider;
+        private Function<String, DatabaseConfiguration> databaseConfigurationProvider;
+        private Function<Jdbi, Void> jdbiCustomizer;
         private Predicate<Handle> connectionTester;
 
         private Initializer() {
@@ -176,8 +179,13 @@ public class JdbiTenantRegistry {
             return this;
         }
 
-        public Initializer setDatabaseConfigurationProvider(DatabaseConfigurationProvider databaseConfigurationProvider) {
+        public Initializer setDatabaseConfigurationProvider(Function<String, DatabaseConfiguration> databaseConfigurationProvider) {
             this.databaseConfigurationProvider = databaseConfigurationProvider;
+            return this;
+        }
+
+        public Initializer setJdbiCustomizer(Function<Jdbi, Void> jdbiCustomizer) {
+            this.jdbiCustomizer = jdbiCustomizer;
             return this;
         }
 

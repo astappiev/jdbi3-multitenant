@@ -28,16 +28,6 @@ class ThreadLocalTenantResolverTest {
     }
 
     @Test
-    void testThrowOnNoDefault() {
-        try {
-            ThreadLocalTenantResolver.newInitializer().init();
-            fail("Must throw NullPointerException cause of not setting default tenant");
-        } catch (NullPointerException e) {
-            assertEquals("Default tenant is required", e.getMessage());
-        }
-    }
-
-    @Test
     void testThrowOnMultipleInitialisations() {
         try {
             ThreadLocalTenantResolver.newInitializer().setDefaultTenant(TEST_DEFAULT_TENANT).init();

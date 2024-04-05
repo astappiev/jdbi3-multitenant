@@ -3,8 +3,6 @@ package io.github.astappiev.jdbi3.it;
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.astappiev.jdbi3.multitenant.JdbiTenantRegistry;
 import io.github.astappiev.jdbi3.multitenant.configuration.DatabaseConfiguration;
-import io.github.astappiev.jdbi3.multitenant.provider.CachedPerHostDataSourceProvider;
-import io.github.astappiev.jdbi3.multitenant.provider.DatabaseConfigurationProvider;
 import io.github.astappiev.jdbi3.multitenant.resolver.ThreadLocalTenantResolver;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,51 +54,43 @@ public class JdbiTenantRegistryIT {
 
         JdbiTenantRegistry.newInitializer()
             .setCurrentTenantResolver(ThreadLocalTenantResolver.getInstance())
-            .setDataSourceProvider(new CachedPerHostDataSourceProvider(config -> {
+            .setDataSourceProvider(config -> {
                 HikariDataSource dataSource = new HikariDataSource();
                 dataSource.setDriverClassName(Optional.ofNullable(config.getDriverClassName()).orElse("org.mariadb.jdbc.Driver"));
                 dataSource.setJdbcUrl(config.getJdbcUrl());
                 dataSource.setUsername(config.getUsername());
                 dataSource.setPassword(config.getPassword());
                 return dataSource;
-            }))
-            .setDatabaseConfigurationProvider(new DatabaseConfigurationProvider() {
-                @Override
-                public int getNumTenants() {
-                    return 3;
+            })
+            .setDatabaseConfigurationProvider(tenantId -> {
+                DatabaseConfiguration config;
+                switch (tenantId) {
+                    case DEFAULT_TENANT:
+                        config = DatabaseConfiguration.newBuilder()
+                                .setJdbcUrl(MARIADB_DEFAULT.getJdbcUrl())
+                                .setUsername(MARIADB_DEFAULT.getUsername())
+                                .setPassword(MARIADB_DEFAULT.getPassword())
+                                .build();
+                        break;
+                    case TENANT_1:
+                        config = DatabaseConfiguration.newBuilder()
+                                .setJdbcUrl(MARIADB_TENANT1.getJdbcUrl())
+                                .setUsername(MARIADB_TENANT1.getUsername())
+                                .setPassword(MARIADB_TENANT1.getPassword())
+                                .build();
+                        break;
+                    case TENANT_2:
+                        config = DatabaseConfiguration.newBuilder()
+                                .setJdbcUrl(MARIADB_TENANT2.getJdbcUrl())
+                                .setUsername(MARIADB_TENANT2.getUsername())
+                                .setPassword(MARIADB_TENANT2.getPassword())
+                                .build();
+                        break;
+                    default:
+                        config = null;
+                        break;
                 }
-
-                @Override
-                public Optional<DatabaseConfiguration> get(String tenantId) {
-                    DatabaseConfiguration config;
-                    switch (tenantId) {
-                        case DEFAULT_TENANT:
-                            config = DatabaseConfiguration.newBuilder()
-                                    .setJdbcUrl(MARIADB_DEFAULT.getJdbcUrl())
-                                    .setUsername(MARIADB_DEFAULT.getUsername())
-                                    .setPassword(MARIADB_DEFAULT.getPassword())
-                                    .build();
-                            break;
-                        case TENANT_1:
-                            config = DatabaseConfiguration.newBuilder()
-                                    .setJdbcUrl(MARIADB_TENANT1.getJdbcUrl())
-                                    .setUsername(MARIADB_TENANT1.getUsername())
-                                    .setPassword(MARIADB_TENANT1.getPassword())
-                                    .build();
-                            break;
-                        case TENANT_2:
-                            config = DatabaseConfiguration.newBuilder()
-                                    .setJdbcUrl(MARIADB_TENANT2.getJdbcUrl())
-                                    .setUsername(MARIADB_TENANT2.getUsername())
-                                    .setPassword(MARIADB_TENANT2.getPassword())
-                                    .build();
-                            break;
-                        default:
-                            config = null;
-                            break;
-                    }
-                    return Optional.ofNullable(config);
-                }
+                return config;
             }).init();
     }
 

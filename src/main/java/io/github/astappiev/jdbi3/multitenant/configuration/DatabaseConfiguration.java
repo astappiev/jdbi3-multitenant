@@ -8,6 +8,7 @@ public class DatabaseConfiguration implements Serializable {
 
     private final String driverClassName;
     private final String jdbcUrl;
+    private final String databaseName;
     private final String username;
     private final String password;
 
@@ -18,7 +19,20 @@ public class DatabaseConfiguration implements Serializable {
             driverClassName = null;
         }
 
-        jdbcUrl = builder.jdbcUrl.trim();
+        String jdbc = builder.jdbcUrl.trim();
+        int hostIndex = jdbc.lastIndexOf("/") + 1;
+        int queryIndex = jdbc.indexOf('?');
+
+        if (builder.databaseName == null) {
+            databaseName = jdbc.substring(hostIndex, queryIndex >= 0 ? queryIndex : jdbc.length());
+            jdbcUrl = jdbc;
+        } else {
+            String jdbcPrefix = jdbc.substring(0, jdbc.lastIndexOf("/") + 1);
+            String jdbcSuffix = queryIndex >= 0 ? jdbc.substring(queryIndex) : "";
+
+            databaseName = builder.databaseName.trim();
+            jdbcUrl = jdbcPrefix + databaseName + jdbcSuffix;
+        }
         username = builder.username.trim();
         password = builder.password.trim();
     }
@@ -36,8 +50,7 @@ public class DatabaseConfiguration implements Serializable {
     }
 
     public String getDatabaseName() {
-        int queryIndex = jdbcUrl.indexOf('?');
-        return jdbcUrl.substring(jdbcUrl.lastIndexOf('/') + 1, queryIndex >= 0 ? queryIndex : jdbcUrl.length());
+        return databaseName;
     }
 
     public String getUsername() {
@@ -77,6 +90,7 @@ public class DatabaseConfiguration implements Serializable {
     public static final class Builder {
         private String driverClassName;
         private String jdbcUrl;
+        private String databaseName;
         private String username;
         private String password;
 
@@ -93,6 +107,14 @@ public class DatabaseConfiguration implements Serializable {
             return this;
         }
 
+        /**
+         * Set the database name. If set, the database name will override the database in JDBC URL.
+         */
+        public Builder setDatabaseName(String databaseName) {
+            this.databaseName = databaseName;
+            return this;
+        }
+
         public Builder setUsername(String username) {
             this.username = username;
             return this;
@@ -101,6 +123,16 @@ public class DatabaseConfiguration implements Serializable {
         public Builder setPassword(String password) {
             this.password = password;
             return this;
+        }
+
+        public Builder copy() {
+            Builder builder = new Builder();
+            builder.driverClassName = driverClassName;
+            builder.jdbcUrl = jdbcUrl;
+            builder.databaseName = databaseName;
+            builder.username = username;
+            builder.password = password;
+            return builder;
         }
 
         public DatabaseConfiguration build() {
