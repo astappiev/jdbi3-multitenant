@@ -6,7 +6,44 @@
 
     <groupId>io.github.astappiev</groupId>
     <artifactId>jdbi3-multitenant</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>MultiTenant Jdbi3 Plugin</name>
+    <description>
+        A plugin for Jdbi3 that allows you to work with multiple databases in one application.
+        E.g. for a scenario when you have a separate database for each tenant/customer/application.
+        The plugin provides a tenant registry and a way to switch between them.
+    </description>
+    <url>https://github.com/astappiev/jdbi3-multitenant</url>
+
+    <licenses>
+        <license>
+            <name>The MIT License</name>
+            <url>https://raw.githubusercontent.com/astappiev/jdbi3-multitenant/master/LICENSE</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>junkfactory</id>
+            <name>Junk F. Actory</name>
+            <url>https://github.com/junkfactory</url>
+        </developer>
+        <developer>
+            <id>astappiev</id>
+            <name>Oleh Astappiev</name>
+            <url>https://github.com/astappiev</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/astappiev/jdbi3-multitenant.git</connection>
+        <developerConnection>scm:git:git://github.com/astappiev/jdbi3-multitenant.git</developerConnection>
+        <url>https://github.com/astappiev/jdbi3-multitenant</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,14 +56,6 @@
         <maven.dependency.mockito.version>5.11.0</maven.dependency.mockito.version>
         <maven.dependency.testcontainers.version>1.19.7</maven.dependency.testcontainers.version>
     </properties>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>Nota24 GitHub Packages</name>
-            <url>https://maven.pkg.github.com/nota24/basement</url>
-        </repository>
-    </distributionManagement>
 
     <dependencies>
         <!-- test dependencies -->
@@ -116,6 +145,58 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <tokenAuth>true</tokenAuth>
+                </configuration>
             </plugin>
         </plugins>
     </build>

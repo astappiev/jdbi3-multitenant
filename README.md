@@ -1,16 +1,19 @@
-# MultiTenant Jdbi3 Plugin [![Build Status](https://travis-ci.org/junkfactory/mt-jdbi3-plugin.svg?branch=master)](https://travis-ci.org/junkfactory/mt-jdbi3-plugin)
+# MultiTenant Jdbi3 Plugin
 
-A [Jdbi3](https://github.com/jdbi/jdbi) plugin that adds support for schema per tenant setup for MySQL.
+A plugin for [Jdbi3](https://github.com/jdbi/jdbi) that allows you to work with multiple databases in one application.
+E.g. for a scenario when you have a separate database for each tenant/customer/application.
+The plugin provides a tenant registry and a way to switch between them.
 
-## Compile and Install
+## How-to use
 
-Use maven to compile and install the library. 
+Include from Maven Central:
 
-```
-git clone https://github.com/junkfactory/mt-jdbi3-plugin.git
-cd mt-jdbi3-plugin
-mvn clean install
-
+```xml
+<dependency>
+    <groupId>io.github.astappiev</groupId>
+    <artifactId>jdbi3-multitenant</artifactId>
+    <version>0.1.0</version>
+</dependency>
 ```
 
 ## Sample Usage
@@ -22,8 +25,7 @@ ThreadLocalTenantResolver.newInitializer().setDefaultTenant(DEFAULT_TENANT).init
 
 JdbiTenantRegistry.newInitializer()
         .setCurrentTenantResolver(ThreadLocalTenantResolver.getInstance())
-        .setDataSourceProvider(new CachedPerHostDataSourceProvider(config -> {
-
+        .setDataSourceProvider(config -> {
             String databaseOption = "serverTimezone=UTC&characterEncoding=UTF-8";
             String jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?%s",
                     config.getHost(),
@@ -36,59 +38,45 @@ JdbiTenantRegistry.newInitializer()
             dataSource.setJdbcUrl(jdbcUrl);
             dataSource.setUsername(config.getUsername());
             return dataSource;
-
-        }))
-        .setDatabaseConfigurationProvider(new DatabaseConfigurationProvider() {
-
-            @Override
-            public int getNumTenants() {
-                return 3;
+        })
+        .setDatabaseConfigurationProvider(tenantId -> {
+            DatabaseConfiguration config;
+            switch (tenantId) {
+                case DEFAULT_TENANT:
+                    config = DatabaseConfiguration.newBuilder()
+                            .setJdbcUrl("jdbc:mariadb://localhost:3306/default_db")
+                            .setUsername("root")
+                            .setPassword("")
+                            .build();
+                    break;
+                case TENANT_1:
+                    config = DatabaseConfiguration.newBuilder()
+                            .setJdbcUrl("jdbc:mariadb://localhost:3306/other_db")
+                            .setUsername("tenant1")
+                            .setPassword("")
+                            .build();
+                    break;
+                case TENANT_2:
+                    config = DatabaseConfiguration.newBuilder()
+                            .setJdbcUrl("jdbc:mariadb://localhost:3306/second_db")
+                            .setUsername("tenant2")
+                            .setPassword("")
+                            .build();
+                    break;
+                    default:
+                        config = null;
             }
-
-            @Override
-            public Optional<DatabaseConfiguration> get(String tenantId) {
-                DatabaseConfiguration config;
-                switch (tenantId) {
-                    case DEFAULT_TENANT:
-                        config = DatabaseConfiguration.newBuilder()
-                                .setHost("localhost")
-                                .setPort(3306)
-                                .setDatabaseName(DEFAULT_TENANT + "_dev")
-                                .setUsername("root")
-                                .setPassword("")
-                                .build();
-                        break;
-                    case TENANT_1:
-                        config = DatabaseConfiguration.newBuilder()
-                                .setHost("localhost")
-                                .setPort(3306)
-                                .setDatabaseName(TENANT_1 + "_dev")
-                                .setUsername("root")
-                                .setPassword("")
-                                .build();
-                        break;
-                    case TENANT_2:
-                        config = DatabaseConfiguration.newBuilder()
-                                .setHost("127.0.0.1")
-                                .setPort(3306)
-                                .setDatabaseName(TENANT_2 + "_dev")
-                                .setUsername("root")
-                                .setPassword("")
-                                .build();
-                        break;
-                        default:
-                            config = null;
-                }
-                return Optional.of(config);
-            }
+            return Optional.of(config);
         }).init();
 ```
 
 Set the current tenant typically from the start of the RR-loop
 
 ```java
-//set current tenant before getting a Jdbi instance from the registry
+// Set the current tenant, before any Jdbi operation
 ThreadLocalTenantResolver.getInstance().setCurrentTenant(tenantId);
+
+// Use Jdbi from the registry
 Jdbi jdbi = JdbiTenantRegistry.getInstance().getJdbi();
 Integer result = jdbi.withHandle(handle -> handle.select("select 1").mapTo(Integer.class).findOnly());
 assertEquals("Result must match", 1, result.intValue());
@@ -106,8 +94,8 @@ assertEquals("Name must match", "defaultTenant", name);
 
 ## Limitations
 
-* Only MySQL is currently supported
-* Only tested with JDK 8
+* The plugin could keep many connections open. Set a minimum idle connection to 0 to avoid this.
+* The fork of this plugin only supports separate connections for each tenant. The original implementation can be used with shared connection and catalog switching.
 
 ## License
 
